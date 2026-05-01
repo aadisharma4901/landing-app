@@ -1,28 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { OPENROUTER_API_KEY } from '@/lib/config';
-import { SYSTEM_PROMPT, DEFAULT_MODEL, OpenRouterMessage } from '@/lib/openrouter';
+import { SYSTEM_PROMPT, DEFAULT_MODEL, OPENROUTER_API_URL } from '@/lib/openrouter';
+import { products } from '@/data/products';
 
 export async function POST(request: NextRequest) {
   try {
-    const { messages } = await request.json();
-
-    if (!messages || !Array.isArray(messages)) {
+    const body = await request.json();
+    
+    // Get user message
+    let userMessage = '';
+    
+    if (body.message) {
+      userMessage = body.message;
+    } else if (body.messages && Array.isArray(body.messages) && body.messages.length > 0) {
+      userMessage = body.messages[body.messages.length - 1].message;
+    } else {
       return NextResponse.json(
-        { error: 'Messages array is required' },
+        { error: 'Message is required' },
         { status: 400 }
       );
     }
 
-    // Build conversation history with system prompt
-    const apiMessages: OpenRouterMessage[] = [
-      { role: 'system', content: SYSTEM_PROMPT },
-      ...messages.map((msg: { type: string; message: string }) => ({
-        role: 'user' as const,
-        content: msg.message
-      }))
+    // Prepare full product context with details
+    const productContext = products.map(p => `${p.id} | ${p.name} | $${p.price} | ${p.category} | ${p.description}`).join('\n');
+
+    // Build full system prompt with product knowledge
+    const fullSystemPrompt = `${SYSTEM_PROMPT}\n\nCURRENT PRODUCTS IN STORE:\n${productContext}`;
+
+    // OpenRouter format messages
+    const messages = [
+      { role: 'system', content: fullSystemPrompt },
+      { role: 'user', content: userMessage }
     ];
 
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const requestBody = {
+      model: DEFAULT_MODEL,
+      messages,
+      temperature: 0.7,
+      max_tokens: 200
+    };
+
+    const response = await fetch(OPENROUTER_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -30,12 +48,7 @@ export async function POST(request: NextRequest) {
         'HTTP-Referer': 'https://banazon.example.com',
         'X-Title': 'Banazon AI Assistant'
       },
-      body: JSON.stringify({
-        model: DEFAULT_MODEL,
-        messages: apiMessages,
-        temperature: 0.7,
-        max_tokens: 150
-      })
+      body: JSON.stringify(requestBody)
     });
 
     if (!response.ok) {
@@ -48,11 +61,10 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await response.json();
-    const assistantReply = data.choices[0]?.message?.content?.trim() || '';
+    const assistantReply = data.choices?.[0]?.message?.content?.trim() || '';
 
     return NextResponse.json({
-      message: assistantReply,
-      model: data.model
+      message: assistantReply
     });
 
   } catch (error) {

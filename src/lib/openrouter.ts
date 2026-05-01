@@ -67,5 +67,5 @@ You: "NAVIGATE|/products|bestseller|Here are our best-sellers!"
 User: "hi"
 You: "Hey! I'm Bro. Ask me about products, deals, or Banazon!"`;
 
-export const DEFAULT_MODEL = 'google/gemma-3-27b-it:free';
+export const DEFAULT_MODEL = 'meta-llama/llama-3-8b-instruct';
 export const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
