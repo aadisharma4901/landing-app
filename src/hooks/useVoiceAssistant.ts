@@ -23,7 +23,9 @@ const FALLBACK_RESPONSES: string[] = [
 ];
 
 function speak(text: string) {
+  if (typeof window === 'undefined') return;
   if (!window.speechSynthesis) return;
+  
   window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
   u.rate = 1.05;
@@ -37,7 +39,6 @@ export function useVoiceAssistant() {
   const [messages, setMessages] = useState<AssistantMessage[]>([{ type: 'text', message: GREETING }]);
   const [isOpen, setIsOpenState] = useState(false);
   const hasGreetedRef = useRef(false);
-
   const isActiveRef = useRef(GLOBAL_IS_RUNNING);
 
   const addMessage = useCallback((msg: AssistantMessage) => {
@@ -53,7 +54,6 @@ export function useVoiceAssistant() {
 
   const setIsOpen = useCallback((open: boolean) => {
     setIsOpenState(open);
-    // ✅ NEVER RESET HASGREETED - ALWAYS STAY ACTIVE
   }, []);
 
   useEffect(() => {
@@ -66,7 +66,6 @@ export function useVoiceAssistant() {
     const q = query.toLowerCase().trim();
     addMessage({ type: 'text', message: query });
 
-    // Always send everything to Gemini AI first, no hardcoded commands
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -93,26 +92,17 @@ export function useVoiceAssistant() {
           return;
         }
         
-        // Normal text response
         addMessage({ type: 'text', message: responseText });
         speak(responseText);
       } else {
-        // Fallback if API fails
         const randomDefault = FALLBACK_RESPONSES[Math.floor(Math.random() * FALLBACK_RESPONSES.length)];
         addMessage({ type: 'text', message: randomDefault });
         speak(randomDefault);
       }
     } catch (error) {
-      // Fallback on error
       const randomDefault = FALLBACK_RESPONSES[Math.floor(Math.random() * FALLBACK_RESPONSES.length)];
       addMessage({ type: 'text', message: randomDefault });
       speak(randomDefault);
-    }
-
-    if (q.includes('stop') || q.includes('off') || q.includes('close') || q.includes('quit')) {
-      speak("Okay, I'll stop listening. Click the button to wake me again.");
-      addMessage({ type: 'text', message: "Okay, stopped listening. Click to start again." });
-      return;
     }
   }, [addMessage]);
 
@@ -121,8 +111,6 @@ export function useVoiceAssistant() {
   }, [processQuery]);
 
   const closeChat = useCallback(() => {
-    // ✅ NEVER CLOSE CHAT AUTOMATICALLY - STAY OPEN FOREVER
-    // Only user manual click will close, never auto close
     setIsOpenState(false);
   }, []);
 
@@ -136,60 +124,47 @@ export function useVoiceAssistant() {
     if (!SpeechRecognition) return;
 
     const rec = new SpeechRecognition();
-    rec.continuous = true;
+    rec.continuous = false;
     rec.interimResults = true;
-    rec.maxAlternatives = 5;
+    rec.maxAlternatives = 1;
     rec.lang = 'en-US';
 
-    let finalTranscript = '';
+    let silenceTimer: any = null;
 
     rec.onresult = (e: any) => {
-      let interimTranscript = '';
+      let speechText = '';
       
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const transcript = e.results[i][0].transcript.toLowerCase().trim();
-        if (e.results[i].isFinal) {
-          finalTranscript = transcript;
-        } else {
-          interimTranscript = transcript;
-        }
+      for (let i = 0; i < e.results.length; i++) {
+        speechText += e.results[i][0].transcript;
+      }
+      
+      speechText = speechText.toLowerCase().trim();
+
+      if (silenceTimer) clearTimeout(silenceTimer);
+
+      if (speechText.includes('hey bro') || speechText.includes('heybro')) {
+        if (!isOpen) greet();
+        speechText = speechText.replace(/hey\s?bro/gi, '').trim();
       }
 
-      const fullText = (finalTranscript + ' ' + interimTranscript).toLowerCase();
-      
-      // Detect wake word and open chat immediately
-      if (fullText.includes('hey bro') || fullText.includes('heybro') || fullText.includes('a bro') || fullText.includes('hey burn')) {
-        if (!isOpen) {
-          greet();
+      silenceTimer = setTimeout(() => {
+        if (speechText) {
+          processQuery(speechText);
         }
-        finalTranscript = finalTranscript.replace(/hey\s?bro/gi, '').trim();
-      }
-
-      // ALWAYS PROCESS EVERYTHING - NO CONDITIONS EVER
-      if (finalTranscript && finalTranscript.length > 2) {
-        if (!isOpen) {
-          greet();
-        }
-        processQuery(finalTranscript);
-        finalTranscript = '';
-      }
+      }, 400);
     };
+
     rec.onend = () => {
-      setTimeout(() => {
-        try { rec.start(); } catch {}
-      }, 5);
+      setTimeout(() => { try { rec.start() } catch {} }, 1);
     };
 
     rec.onerror = () => {
-      setTimeout(() => {
-        try { rec.start(); } catch {}
-      }, 5);
+      setTimeout(() => { try { rec.start() } catch {} }, 1);
     };
 
     GLOBAL_RECOGNITION = rec;
     GLOBAL_INITIALIZED = true;
 
-    // START ON FIRST USER INTERACTION
     const start = () => {
       if (!GLOBAL_IS_RUNNING) {
         try {
