@@ -31,7 +31,7 @@ export function useVoiceAssistant() {
   const lastQueryRef = useRef<string>('');
   const lastQueryTimeRef = useRef<number>(0);
   const isSpeakingRef = useRef(false);
-  const shouldRestartRef = useRef(true);
+  const shouldRestartRef = useRef(false); // mic OFF by default — only starts when user clicks button
   const recognitionRef = useRef<any>(null);
   const utteranceIdRef = useRef(0);
   const processQueryRef = useRef<((query: string) => void) | null>(null);
@@ -41,6 +41,7 @@ export function useVoiceAssistant() {
     if (typeof window === 'undefined') return;
     if (!window.speechSynthesis) return;
 
+    // Stop mic — rec.onend will fire and block restart because isSpeakingRef is true
     if (recognitionRef.current) {
       try {
         console.log("🛑 Stopping mic for AI speech");
@@ -61,13 +62,12 @@ export function useVoiceAssistant() {
       console.log("🔊 AI finished speaking");
       isSpeakingRef.current = false;
 
+      // Only restart mic if user had it enabled before AI spoke
       if (shouldRestartRef.current && recognitionRef.current) {
         setTimeout(() => {
           try {
-            if (!GLOBAL_IS_RUNNING) {
-              console.log("🎤 Restart after AI speech");
-              recognitionRef.current.start();
-            }
+            console.log("🎤 Restart after AI speech");
+            recognitionRef.current.start();
           } catch (e: any) {
             if (e.name !== "InvalidStateError") {
               console.log("Restart after speech error:", e);
@@ -84,10 +84,8 @@ export function useVoiceAssistant() {
       if (shouldRestartRef.current && recognitionRef.current) {
         setTimeout(() => {
           try {
-            if (!GLOBAL_IS_RUNNING) {
-              console.log(" Restart after AI speech");
-              recognitionRef.current.start();
-            }
+            console.log("🎤 Restart after AI speech");
+            recognitionRef.current.start();
           } catch (e: any) {
             if (e.name !== "InvalidStateError") {
               console.log("Restart after speech error:", e);
@@ -187,6 +185,17 @@ export function useVoiceAssistant() {
     setIsOpenState(open);
   }, []);
 
+  const stopListening = useCallback(() => {
+    if (GLOBAL_IS_RUNNING) {
+      shouldRestartRef.current = false;
+      try {
+        recognitionRef.current?.stop();
+        GLOBAL_IS_RUNNING = false;
+        setIsListening(false);
+      } catch {}
+    }
+  }, [setIsListening]);
+
   useEffect(() => {
     if (GLOBAL_INITIALIZED) return;
 
@@ -245,15 +254,16 @@ export function useVoiceAssistant() {
       GLOBAL_IS_RUNNING = false;
       setIsListening(false);
 
-      if (!shouldRestartRef.current) return;
+      if (!shouldRestartRef.current) {
+        console.log("🚫 Restart blocked — shouldRestartRef is false");
+        return;
+      }
       if (isSpeakingRef.current) return;
 
       setTimeout(() => {
         try {
-          if (!GLOBAL_IS_RUNNING) {
-            console.log("🔄 Restarting recognition...");
-            rec.start();
-          }
+          console.log("🔄 Restarting recognition...");
+          rec.start();
         } catch (e: any) {
           if (e.name !== "InvalidStateError") {
             console.log("⚠️ Restart error:", e);
@@ -267,15 +277,16 @@ export function useVoiceAssistant() {
       GLOBAL_IS_RUNNING = false;
       setIsListening(false);
 
-      if (!shouldRestartRef.current) return;
+      if (!shouldRestartRef.current) {
+        console.log("🚫 Restart blocked — shouldRestartRef is false");
+        return;
+      }
       if (isSpeakingRef.current) return;
 
       setTimeout(() => {
         try {
-          if (!GLOBAL_IS_RUNNING) {
-            console.log("🔄 Restarting recognition...");
-            rec.start();
-          }
+          console.log("🔄 Restarting recognition...");
+          rec.start();
         } catch (e: any) {
           if (e.name !== "InvalidStateError") {
             console.log("⚠️ Restart error:", e);
@@ -288,34 +299,10 @@ export function useVoiceAssistant() {
     GLOBAL_RECOGNITION = rec;
     GLOBAL_INITIALIZED = true;
 
-    const start = () => {
-      if (!GLOBAL_IS_RUNNING) {
-        try {
-          rec.start();
-          GLOBAL_IS_RUNNING = true;
-          setIsListening(true);
-          shouldRestartRef.current = true;
-        } catch {}
-      }
-    };
-
-    const stop = () => {
-      if (GLOBAL_IS_RUNNING) {
-        shouldRestartRef.current = false;
-        try {
-          rec.stop();
-          GLOBAL_IS_RUNNING = false;
-          setIsListening(false);
-        } catch {}
-      }
-    };
-
-    document.addEventListener('click', start, { once: true });
-
     return () => {
-      stop();
+      stopListening();
     };
-  }, [setIsListening, greet, isOpen, processQueryCallback]);
+  }, [setIsListening, greet, isOpen, processQueryCallback, stopListening]);
 
   useEffect(() => {
     if (isOpen && !hasGreetedRef.current) {
@@ -325,17 +312,14 @@ export function useVoiceAssistant() {
 
   const toggleListening = useCallback(() => {
     if (GLOBAL_IS_RUNNING) {
-      shouldRestartRef.current = false;
-      try {
-        recognitionRef.current?.stop();
-      } catch {}
+      stopListening();
     } else {
       shouldRestartRef.current = true;
       try {
         recognitionRef.current?.start();
       } catch {}
     }
-  }, []);
+  }, [stopListening]);
 
   return {
     isListening,

@@ -19,10 +19,7 @@ export default function FloatingChatBubble() {
 
   const handleBubbleClick = () => {
     setIsOpen(true);
-    // Auto-start listening the first time chat opens
-    if (!isListening) {
-      toggleListening();
-    }
+    // Do NOT auto-start mic — user must click mic button manually
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
