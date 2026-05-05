@@ -4,11 +4,13 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { AssistantMessage } from '@/hooks/useVoiceAssistant';
 
-export default function ChatWindow({ messages, onSendMessage, onClose, wakeWord }: {
+export default function ChatWindow({ messages, onSendMessage, onClose, wakeWord, isListening, toggleListening }: {
   messages: AssistantMessage[];
   onSendMessage: (msg: string) => void;
   onClose: () => void;
   wakeWord: string;
+  isListening: boolean;
+  toggleListening: () => void;
 }) {
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -66,27 +68,51 @@ export default function ChatWindow({ messages, onSendMessage, onClose, wakeWord 
       className="fixed bottom-24 right-6 z-50 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-zinc-200 overflow-hidden"
       style={{ maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}
     >
-      {/* Header */}
-      <div className="bg-gradient-to-r from-zinc-900 to-zinc-700 p-4 flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-zinc-800 rounded-full flex items-center justify-center">
-            <span className="text-white font-bold text-lg">B</span>
-          </div>
-          <div>
-            <h3 className="text-white font-semibold">Bro</h3>
-            <p className="text-zinc-300 text-xs">Your Shopping Assistant</p>
-          </div>
-        </div>
-        <button
-          onClick={onClose}
-          className="text-zinc-300 hover:text-white transition-colors p-1"
-          aria-label="Close chat"
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
+       {/* Header */}
+       <div className="bg-gradient-to-r from-zinc-900 to-zinc-700 p-4 flex justify-between items-center">
+         <div className="flex items-center gap-3">
+           <div className="w-10 h-10 bg-zinc-800 rounded-full flex items-center justify-center">
+             <span className="text-white font-bold text-lg">B</span>
+           </div>
+           <div>
+             <h3 className="text-white font-semibold">Bro</h3>
+             <p className="text-zinc-300 text-xs">Your Shopping Assistant</p>
+           </div>
+         </div>
+         <div className="flex items-center gap-2">
+           {/* Mic Toggle Button */}
+           <button
+             onClick={toggleListening}
+             className={`btn-interactive p-2 rounded-full transition-colors ${
+               isListening
+                 ? 'bg-red-500 text-white'
+                 : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-700'
+             }`}
+             aria-label={isListening ? 'Stop listening' : 'Start listening'}
+             title={isListening ? 'Click to stop voice' : 'Click to speak'}
+           >
+             {isListening ? (
+               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+               </svg>
+             ) : (
+               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+               </svg>
+             )}
+           </button>
+           {/* Close Button */}
+           <button
+             onClick={onClose}
+             className="text-zinc-300 hover:text-white transition-colors p-1"
+             aria-label="Close chat"
+           >
+             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+             </svg>
+           </button>
+         </div>
+       </div>
 
       {/* Quick Questions */}
       <div className="p-3 border-b border-zinc-100 overflow-x-auto">
