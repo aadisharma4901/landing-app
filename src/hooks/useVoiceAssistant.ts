@@ -41,8 +41,6 @@ export function useVoiceAssistant() {
     if (typeof window === 'undefined') return;
     if (!window.speechSynthesis) return;
 
-    shouldRestartRef.current = false; // Prevent auto-restart while AI speaks
-
     if (recognitionRef.current) {
       try {
         console.log("🛑 Stopping mic for AI speech");
@@ -63,13 +61,13 @@ export function useVoiceAssistant() {
       console.log("🔊 AI finished speaking");
       isSpeakingRef.current = false;
 
-      shouldRestartRef.current = true; // Re-enable restart after AI finishes
-
-      if (recognitionRef.current) {
+      if (shouldRestartRef.current && recognitionRef.current) {
         setTimeout(() => {
           try {
-            console.log("🎤 Restart after AI speech");
-            recognitionRef.current.start();
+            if (!GLOBAL_IS_RUNNING) {
+              console.log("🎤 Restart after AI speech");
+              recognitionRef.current.start();
+            }
           } catch (e: any) {
             if (e.name !== "InvalidStateError") {
               console.log("Restart after speech error:", e);
@@ -83,13 +81,13 @@ export function useVoiceAssistant() {
       console.log("🔊 AI finished speaking (error)");
       isSpeakingRef.current = false;
 
-      shouldRestartRef.current = true; // Re-enable restart after AI finishes
-
-      if (recognitionRef.current) {
+      if (shouldRestartRef.current && recognitionRef.current) {
         setTimeout(() => {
           try {
-            console.log("🎤 Restart after AI speech");
-            recognitionRef.current.start();
+            if (!GLOBAL_IS_RUNNING) {
+              console.log(" Restart after AI speech");
+              recognitionRef.current.start();
+            }
           } catch (e: any) {
             if (e.name !== "InvalidStateError") {
               console.log("Restart after speech error:", e);
@@ -189,21 +187,6 @@ export function useVoiceAssistant() {
     setIsOpenState(open);
   }, []);
 
-  const stopListening = useCallback(() => {
-    if (GLOBAL_IS_RUNNING) {
-      shouldRestartRef.current = false;
-      try {
-        if (recognitionRef.current) {
-          recognitionRef.current.onend = null;
-          recognitionRef.current.onerror = null;
-          recognitionRef.current.stop();
-        }
-        GLOBAL_IS_RUNNING = false;
-        setIsListening(false);
-      } catch {}
-    }
-  }, [setIsListening]);
-
   useEffect(() => {
     if (GLOBAL_INITIALIZED) return;
 
@@ -262,16 +245,15 @@ export function useVoiceAssistant() {
       GLOBAL_IS_RUNNING = false;
       setIsListening(false);
 
-      if (!shouldRestartRef.current) {
-        console.log("🚫 Restart blocked — shouldRestartRef is false");
-        return;
-      }
+      if (!shouldRestartRef.current) return;
       if (isSpeakingRef.current) return;
 
       setTimeout(() => {
         try {
-          console.log("🔄 Restarting recognition...");
-          rec.start();
+          if (!GLOBAL_IS_RUNNING) {
+            console.log("🔄 Restarting recognition...");
+            rec.start();
+          }
         } catch (e: any) {
           if (e.name !== "InvalidStateError") {
             console.log("⚠️ Restart error:", e);
@@ -285,16 +267,15 @@ export function useVoiceAssistant() {
       GLOBAL_IS_RUNNING = false;
       setIsListening(false);
 
-      if (!shouldRestartRef.current) {
-        console.log("🚫 Restart blocked — shouldRestartRef is false");
-        return;
-      }
+      if (!shouldRestartRef.current) return;
       if (isSpeakingRef.current) return;
 
       setTimeout(() => {
         try {
-          console.log("🔄 Restarting recognition...");
-          rec.start();
+          if (!GLOBAL_IS_RUNNING) {
+            console.log("🔄 Restarting recognition...");
+            rec.start();
+          }
         } catch (e: any) {
           if (e.name !== "InvalidStateError") {
             console.log("⚠️ Restart error:", e);
@@ -307,10 +288,34 @@ export function useVoiceAssistant() {
     GLOBAL_RECOGNITION = rec;
     GLOBAL_INITIALIZED = true;
 
-    return () => {
-      stopListening();
+    const start = () => {
+      if (!GLOBAL_IS_RUNNING) {
+        try {
+          rec.start();
+          GLOBAL_IS_RUNNING = true;
+          setIsListening(true);
+          shouldRestartRef.current = true;
+        } catch {}
+      }
     };
-  }, [setIsListening, greet, isOpen, processQueryCallback, stopListening]);
+
+    const stop = () => {
+      if (GLOBAL_IS_RUNNING) {
+        shouldRestartRef.current = false;
+        try {
+          rec.stop();
+          GLOBAL_IS_RUNNING = false;
+          setIsListening(false);
+        } catch {}
+      }
+    };
+
+    document.addEventListener('click', start, { once: true });
+
+    return () => {
+      stop();
+    };
+  }, [setIsListening, greet, isOpen, processQueryCallback]);
 
   useEffect(() => {
     if (isOpen && !hasGreetedRef.current) {
@@ -320,14 +325,17 @@ export function useVoiceAssistant() {
 
   const toggleListening = useCallback(() => {
     if (GLOBAL_IS_RUNNING) {
-      stopListening();
+      shouldRestartRef.current = false;
+      try {
+        recognitionRef.current?.stop();
+      } catch {}
     } else {
       shouldRestartRef.current = true;
       try {
         recognitionRef.current?.start();
       } catch {}
     }
-  }, [stopListening]);
+  }, []);
 
   return {
     isListening,
