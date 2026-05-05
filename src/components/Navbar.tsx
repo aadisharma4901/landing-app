@@ -177,16 +177,14 @@ export default function Navbar(): React.JSX.Element {
         <div className="glass border-t border-zinc-200/50">
          <div className="px-4 py-6 space-y-4">
            {navItems.map((item) => (
-             <button
+             <Link
                key={item.name}
-               onClick={() => {
-                 scrollToSection(item.href);
-                 setIsMobileMenuOpen(false);
-               }}
+               href={item.href}
+               onClick={() => setIsMobileMenuOpen(false)}
                className="btn-interactive block w-full text-left text-zinc-600 hover:text-zinc-900 transition-colors font-medium py-2"
              >
                {item.name}
-             </button>
+             </Link>
            ))}
             <a
               href="/pricing"
