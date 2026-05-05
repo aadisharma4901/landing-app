@@ -15,7 +15,7 @@ export default function ScrollIndicator() {
   }, []);
 
   const scrollDown = () => {
-    start();
+    window.scrollBy({ top: window.innerHeight * 0.8, behavior: 'smooth' });
   };
 
   return (
