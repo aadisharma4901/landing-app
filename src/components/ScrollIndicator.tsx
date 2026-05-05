@@ -15,7 +15,12 @@ export default function ScrollIndicator() {
   }, []);
 
   const scrollDown = () => {
-    window.scrollBy({ top: window.innerHeight * 0.8, behavior: 'smooth' });
+    const featuresSection = document.querySelector('#features');
+    if (featuresSection) {
+      featuresSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      window.scrollBy({ top: window.innerHeight * 0.8, behavior: 'smooth' });
+    }
   };
 
   return (

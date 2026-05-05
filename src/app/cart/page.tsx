@@ -1,6 +1,7 @@
 'use client';
 
 import ScrollReveal from '@/components/ScrollReveal';
+import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
 
 export default function CartPage() {
@@ -14,13 +15,13 @@ export default function CartPage() {
             <div className="py-20">
               <div className="text-8xl mb-6">🛒</div>
               <h1 className="text-3xl font-bold text-zinc-900 mb-4">Your cart is empty</h1>
-              <p className="text-lg text-zinc-600 mb-8">Looks like you haven't added any items yet.</p>
-              <a 
-                href="/products" 
+              <p className="text-lg text-zinc-600 mb-8">Looks like you haven&apos;t added any items yet.</p>
+              <Link
+                href="/products"
                 className="btn-interactive inline-block px-8 py-4 bg-zinc-900 text-white rounded-xl font-semibold text-lg"
               >
                 Browse Products
-              </a>
+              </Link>
             </div>
           </ScrollReveal>
         </div>

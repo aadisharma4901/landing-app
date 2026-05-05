@@ -149,10 +149,7 @@ export function useVoiceAssistant() {
   }, []);
 
   useEffect(() => {
-    if (GLOBAL_INITIALIZED) {
-      setIsListening(GLOBAL_IS_RUNNING);
-      return;
-    }
+    if (GLOBAL_INITIALIZED) return;
 
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) return;

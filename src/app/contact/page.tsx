@@ -1,4 +1,5 @@
 import ScrollReveal from '@/components/ScrollReveal';
+import React from 'react';
 
 export default function ContactPage() {
   return (
@@ -10,7 +11,7 @@ export default function ContactPage() {
             Get In Touch
           </h1>
           <p className="text-xl text-zinc-600 max-w-3xl mx-auto leading-relaxed">
-            Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
+            Have questions? We&apos;d love to hear from you. Send us a message and we&apos;ll respond as soon as possible.
           </p>
         </ScrollReveal>
 
@@ -23,16 +24,16 @@ export default function ContactPage() {
                 <div className="grid md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-zinc-700 mb-2">First Name</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       className="w-full px-4 py-3 rounded-xl border border-zinc-200 focus:border-zinc-400 focus:outline-none transition-colors"
                       placeholder="John"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-zinc-700 mb-2">Last Name</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       className="w-full px-4 py-3 rounded-xl border border-zinc-200 focus:border-zinc-400 focus:outline-none transition-colors"
                       placeholder="Doe"
                     />
@@ -40,29 +41,29 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-zinc-700 mb-2">Email Address</label>
-                  <input 
-                    type="email" 
+                  <input
+                    type="email"
                     className="w-full px-4 py-3 rounded-xl border border-zinc-200 focus:border-zinc-400 focus:outline-none transition-colors"
                     placeholder="john@example.com"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-zinc-700 mb-2">Subject</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     className="w-full px-4 py-3 rounded-xl border border-zinc-200 focus:border-zinc-400 focus:outline-none transition-colors"
                     placeholder="How can we help?"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-zinc-700 mb-2">Message</label>
-                  <textarea 
+                  <textarea
                     rows={5}
                     className="w-full px-4 py-3 rounded-xl border border-zinc-200 focus:border-zinc-400 focus:outline-none transition-colors resize-none"
                     placeholder="Tell us more about your inquiry..."
                   />
                 </div>
-                <button 
+                <button
                   type="submit"
                   className="btn-interactive w-full bg-zinc-900 text-white py-4 rounded-xl font-semibold text-lg"
                 >
@@ -125,12 +126,12 @@ export default function ContactPage() {
                 <p className="text-zinc-600 mb-6">
                   Our support team is available 24/7 for critical issues.
                 </p>
-                <a 
-                  href="#" 
-                  className="btn-interactive inline-flex items-center px-6 py-3 bg-zinc-900 text-white rounded-full font-semibold"
-                >
-                  Start Live Chat
-                </a>
+               <button
+                 type="button"
+                 className="btn-interactive inline-flex items-center px-6 py-3 bg-zinc-900 text-white rounded-full font-semibold"
+               >
+                 Start Live Chat
+               </button>
               </div>
             </div>
           </ScrollReveal>

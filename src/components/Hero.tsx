@@ -3,6 +3,7 @@ import ScrollReveal from './ScrollReveal';
 import Hero3D from './Hero3D';
 import MagneticButton from './MagneticButton';
 import ScrollIndicator from './ScrollIndicator';
+import Link from 'next/link';
 import React from 'react';
 
 export default function Hero(): React.JSX.Element {
@@ -73,12 +74,12 @@ export default function Hero(): React.JSX.Element {
                    </svg>
                  </MagneticButton>
 
-                <a
-                  href="/pricing"
-                  className="btn-interactive inline-flex items-center justify-center px-8 py-4 bg-white text-zinc-900 border border-zinc-200 rounded-full font-semibold text-lg hover:bg-zinc-50"
-                >
-                  View Deals
-                </a>
+                 <Link
+                   href="/pricing"
+                   className="btn-interactive inline-flex items-center justify-center px-8 py-4 bg-white text-zinc-900 border border-zinc-200 rounded-full font-semibold text-lg hover:bg-zinc-50"
+                 >
+                   View Deals
+                 </Link>
               </div>
             </ScrollReveal>
 

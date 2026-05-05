@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import React from 'react';
 import { useCart } from '@/context/CartContext';
 import Link from 'next/link';
+import { useTheme } from '@/context/ThemeContext';
 
 interface NavItem {
   name: string;
@@ -36,8 +37,7 @@ function CartIcon() {
 export default function Navbar(): React.JSX.Element {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const theme = 'light';
-  const toggleTheme = () => {};
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -176,23 +176,23 @@ export default function Navbar(): React.JSX.Element {
       >
         <div className="glass border-t border-zinc-200/50">
          <div className="px-4 py-6 space-y-4">
-           {navItems.map((item) => (
-             <Link
-               key={item.name}
-               href={item.href}
-               onClick={() => setIsMobileMenuOpen(false)}
-               className="btn-interactive block w-full text-left text-zinc-600 hover:text-zinc-900 transition-colors font-medium py-2"
-             >
-               {item.name}
-             </Link>
-           ))}
-            <a
+            {navItems.map((item) => (
+              <Link
+                key={item.name}
+                href={item.href}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="btn-interactive block w-full text-left text-zinc-600 hover:text-zinc-900 transition-colors font-medium py-2"
+              >
+                {item.name}
+              </Link>
+            ))}
+            <Link
               href="/pricing"
-              className="block w-full text-center bg-zinc-900 text-white px-6 py-3 rounded-full font-medium"
+              className="btn-interactive block w-full text-center bg-zinc-900 text-white px-6 py-3 rounded-full font-medium"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Get Started
-            </a>
+            </Link>
           </div>
         </div>
       </div>

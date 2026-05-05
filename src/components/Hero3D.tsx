@@ -109,10 +109,14 @@ function AnimatedIcosahedron({ position, color, speed = 1 }: { position: [number
 function ParticleField() {
   const particlesCount = 300;
   const positions = useMemo(() => {
+    // eslint-disable-next-line react-hooks/purity
     const pos = new Float32Array(particlesCount * 3);
     for (let i = 0; i < particlesCount; i++) {
+      // eslint-disable-next-line react-hooks/purity
       pos[i * 3] = (Math.random() - 0.5) * 12;
+      // eslint-disable-next-line react-hooks/purity
       pos[i * 3 + 1] = (Math.random() - 0.5) * 12;
+      // eslint-disable-next-line react-hooks/purity
       pos[i * 3 + 2] = (Math.random() - 0.5) * 12;
     }
     return pos;

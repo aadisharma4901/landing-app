@@ -6,6 +6,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { CartProvider } from '@/context/CartContext';
 import FloatingChatBubble from '@/components/FloatingChatBubble';
+import { ThemeProvider } from '@/context/ThemeContext';
 import ScrollProgress from '@/components/ScrollProgress';
 import ScrollToTop from '@/components/ScrollToTop';
 
@@ -57,7 +58,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="min-h-full flex flex-col bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100 transition-colors duration-300">
-                  <CartProvider>
+        <ThemeProvider>
+          <CartProvider>
             <ScrollProgress />
             <Navbar />
             <main className="flex-1">
@@ -67,6 +69,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <FloatingChatBubble />
             <ScrollToTop />
           </CartProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
