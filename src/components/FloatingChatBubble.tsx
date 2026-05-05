@@ -18,11 +18,7 @@ export default function FloatingChatBubble() {
   } = useVoiceAssistant();
 
    const handleBubbleClick = () => {
-     if (isOpen) {
-       toggleListening();
-     } else {
-       setIsOpen(true);
-     }
+     setIsOpen(true);
    };
 
    return (

@@ -105,22 +105,22 @@ export default function ChatWindow({ messages, onSendMessage, onClose, wakeWord 
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4" style={{ minHeight: '300px' }}>
-        <AnimatePresence>
-          {messages.map((msg, idx) => (
-            <motion.div
-              key={idx}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2 }}
-              className={`flex ${msg.type === 'text' && idx % 2 === 0 ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className={`max-w-[85%] p-3 rounded-2xl ${
-                  msg.type === 'text' && idx % 2 === 0
-                    ? 'bg-zinc-900 text-white rounded-br-sm'
-                    : 'bg-zinc-100 text-zinc-800 rounded-bl-sm'
-                }`}
-              >
+         <AnimatePresence>
+           {messages.map((msg, idx) => (
+             <motion.div
+               key={idx}
+               initial={{ opacity: 0, y: 10 }}
+               animate={{ opacity: 1, y: 0 }}
+               transition={{ duration: 0.2 }}
+               className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+             >
+               <div
+                 className={`max-w-[85%] p-3 rounded-2xl ${
+                    msg.sender === 'user'
+                     ? 'bg-zinc-900 text-white rounded-br-sm'
+                     : 'bg-zinc-100 text-zinc-800 rounded-bl-sm'
+                 }`}
+               >
                 {idx === 0 ? (
                   <div className="flex items-center gap-2">
                     <span className="text-lg">👋</span>
@@ -170,9 +170,9 @@ export default function ChatWindow({ messages, onSendMessage, onClose, wakeWord 
             </svg>
           </button>
         </div>
-        <p className="text-xs text-zinc-400 mt-2 text-center">
-          Tip: Say &quot;{wakeWord}&quot; to activate voice mode
-        </p>
+ <p className="text-xs text-zinc-400 mt-2 text-center">
+            Tip: Say &quot;hey bro&quot; to activate voice mode
+          </p>
       </div>
     </motion.div>
   );

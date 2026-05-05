@@ -1,4 +1,5 @@
 import ScrollReveal from './ScrollReveal';
+import MagneticButton from './MagneticButton';
 import React from 'react';
 
 export default function CTA(): React.JSX.Element {
@@ -24,9 +25,9 @@ export default function CTA(): React.JSX.Element {
             today — no credit card required.
           </p>
 
-          <a
-            href="#"
-            className="btn-interactive inline-flex items-center justify-center px-10 py-5 bg-white text-zinc-900 rounded-full font-semibold text-lg hover:bg-zinc-100 shadow-2xl"
+          <MagneticButton
+            href="/products"
+            className="btn-interactive inline-flex items-center justify-center px-10 py-5 bg-white text-zinc-900 rounded-full font-semibold text-lg hover:shadow-2xl shadow-lg"
           >
             Get Started Free
             <svg
@@ -42,7 +43,7 @@ export default function CTA(): React.JSX.Element {
                 d="M17 8l4 4m0 0l-4 4m4-4H3"
               />
             </svg>
-          </a>
+          </MagneticButton>
 
           <p className="mt-6 text-sm text-zinc-400">
             Free 14-day trial · No credit card required · Cancel anytime

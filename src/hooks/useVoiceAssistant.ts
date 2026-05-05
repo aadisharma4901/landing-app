@@ -7,6 +7,7 @@ export type AssistantMessage = {
   message: string;
   page?: string;
   filter?: string;
+  sender: 'user' | 'assistant';
 };
 
 const WAKE_WORD = 'hey bro';
@@ -22,24 +23,45 @@ const FALLBACK_RESPONSES: string[] = [
   "AI service is unavailable. Please try again later."
 ];
 
-function speak(text: string) {
-  if (typeof window === 'undefined') return;
-  if (!window.speechSynthesis) return;
-  
-  window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.rate = 1.05;
-  u.pitch = 1.08;
-  u.volume = 1;
-  window.speechSynthesis.speak(u);
-}
+
 
 export function useVoiceAssistant() {
   const [isListening, setIsListening] = useState(GLOBAL_IS_RUNNING);
-  const [messages, setMessages] = useState<AssistantMessage[]>([{ type: 'text', message: GREETING }]);
+  const [messages, setMessages] = useState<AssistantMessage[]>([{ type: 'text', message: GREETING, sender: 'assistant' }]);
   const [isOpen, setIsOpenState] = useState(false);
   const hasGreetedRef = useRef(false);
-  const isActiveRef = useRef(GLOBAL_IS_RUNNING);
+  const lastQueryRef = useRef<string>('');
+  const lastQueryTimeRef = useRef<number>(0);
+  const isSpeakingRef = useRef(false);
+  const utteranceIdRef = useRef(0);
+  const QUERY_COOLDOWN_MS = 2000;
+
+  const speak = useCallback((text: string) => {
+    if (typeof window === 'undefined') return;
+    if (!window.speechSynthesis) return;
+    
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 1.05;
+    u.pitch = 1.08;
+    u.volume = 1;
+    
+    const currentId = ++utteranceIdRef.current;
+    isSpeakingRef.current = true;
+    
+    u.onend = () => {
+      if (utteranceIdRef.current === currentId) {
+        isSpeakingRef.current = false;
+      }
+    };
+    u.onerror = () => {
+      if (utteranceIdRef.current === currentId) {
+        isSpeakingRef.current = false;
+      }
+    };
+    
+    window.speechSynthesis.speak(u);
+  }, [isSpeakingRef, utteranceIdRef]);
 
   const addMessage = useCallback((msg: AssistantMessage) => {
     setMessages(prev => [...prev, msg]);
@@ -50,7 +72,7 @@ export function useVoiceAssistant() {
     hasGreetedRef.current = true;
     setIsOpenState(true);
     speak("Hey! I'm Bro. How can I help?");
-  }, []);
+  }, [speak]);
 
   const setIsOpen = useCallback((open: boolean) => {
     setIsOpenState(open);
@@ -63,8 +85,20 @@ export function useVoiceAssistant() {
   }, [isOpen, greet]);
 
   const processQuery = useCallback(async (query: string) => {
-    const q = query.toLowerCase().trim();
-    addMessage({ type: 'text', message: query });
+    const now = Date.now();
+    const trimmedQuery = query.toLowerCase().trim();
+    
+    const prevQuery = lastQueryRef.current;
+    const prevTime = lastQueryTimeRef.current;
+    
+    if (trimmedQuery === prevQuery && now - prevTime < QUERY_COOLDOWN_MS) {
+      return;
+    }
+    
+    lastQueryRef.current = trimmedQuery;
+    lastQueryTimeRef.current = now;
+
+    addMessage({ type: 'text', message: query, sender: 'user' });
 
     try {
       const response = await fetch('/api/chat', {
@@ -82,7 +116,7 @@ export function useVoiceAssistant() {
           const parts = responseText.split('|');
           const [, path, filter, message] = parts;
           
-          addMessage({ type: 'text', message: message.trim() });
+          addMessage({ type: 'text', message: message.trim(), sender: 'assistant' });
           speak(message.trim());
           
           setTimeout(() => {
@@ -92,19 +126,19 @@ export function useVoiceAssistant() {
           return;
         }
         
-        addMessage({ type: 'text', message: responseText });
+        addMessage({ type: 'text', message: responseText, sender: 'assistant' });
         speak(responseText);
       } else {
         const randomDefault = FALLBACK_RESPONSES[Math.floor(Math.random() * FALLBACK_RESPONSES.length)];
-        addMessage({ type: 'text', message: randomDefault });
+        addMessage({ type: 'text', message: randomDefault, sender: 'assistant' });
         speak(randomDefault);
       }
     } catch (error) {
       const randomDefault = FALLBACK_RESPONSES[Math.floor(Math.random() * FALLBACK_RESPONSES.length)];
-      addMessage({ type: 'text', message: randomDefault });
+      addMessage({ type: 'text', message: randomDefault, sender: 'assistant' });
       speak(randomDefault);
     }
-  }, [addMessage]);
+  }, [addMessage, speak]);
 
   const sendMessage = useCallback((text: string) => {
     processQuery(text);
@@ -124,9 +158,9 @@ export function useVoiceAssistant() {
     if (!SpeechRecognition) return;
 
     const rec = new SpeechRecognition();
-    rec.continuous = false;
+    rec.continuous = true;
     rec.interimResults = true;
-    rec.maxAlternatives = 1;
+    rec.maxAlternatives = 5;
     rec.lang = 'en-US';
 
     let silenceTimer: any = null;
@@ -137,29 +171,49 @@ export function useVoiceAssistant() {
       for (let i = 0; i < e.results.length; i++) {
         speechText += e.results[i][0].transcript;
       }
-      
       speechText = speechText.toLowerCase().trim();
 
       if (silenceTimer) clearTimeout(silenceTimer);
 
-      if (speechText.includes('hey bro') || speechText.includes('heybro')) {
-        if (!isOpen) greet();
+      // Check wake word FIRST (always allowed)
+      const hasWakeWord = speechText.includes('hey bro') || speechText.includes('heybro');
+      
+      if (hasWakeWord) {
+        // Cancel any ongoing speech so the assistant can listen immediately
+        if (isSpeakingRef.current) {
+          window.speechSynthesis.cancel();
+          isSpeakingRef.current = false;
+        }
+        
+        if (!isOpen) {
+          greet();
+        }
+        
+        // Strip wake word from the query
         speechText = speechText.replace(/hey\s?bro/gi, '').trim();
+        
+        // If nothing left after stripping, we're done
+        if (!speechText) return;
+      }
+
+      // For non-wake-word queries, block while assistant is speaking
+      if (!hasWakeWord && isSpeakingRef.current) {
+        return;
       }
 
       silenceTimer = setTimeout(() => {
-        if (speechText) {
+        if (speechText && speechText.length > 2) {
           processQuery(speechText);
         }
       }, 400);
     };
 
     rec.onend = () => {
-      setTimeout(() => { try { rec.start() } catch {} }, 1);
+      setTimeout(() => { try { rec.start() } catch {} }, 5);
     };
 
     rec.onerror = () => {
-      setTimeout(() => { try { rec.start() } catch {} }, 1);
+      setTimeout(() => { try { rec.start() } catch {} }, 5);
     };
 
     GLOBAL_RECOGNITION = rec;
@@ -170,15 +224,12 @@ export function useVoiceAssistant() {
         try {
           rec.start();
           GLOBAL_IS_RUNNING = true;
-          isActiveRef.current = true;
           setIsListening(true);
         } catch {}
       }
     };
     
     document.addEventListener('click', start, { once: true });
-    document.addEventListener('touchstart', start, { once: true });
-    document.addEventListener('keydown', start, { once: true });
 
   }, [greet, processQuery, isOpen]);
 

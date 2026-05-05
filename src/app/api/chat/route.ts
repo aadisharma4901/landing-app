@@ -27,9 +27,11 @@ export async function POST(request: NextRequest) {
     // Build full system prompt with product knowledge
     const fullSystemPrompt = `${SYSTEM_PROMPT}\n\nCURRENT PRODUCTS IN STORE:\n${productContext}`;
 
-    // OpenRouter format messages
+    // OpenRouter format messages WITH FULL CONTEXT HISTORY
+    const history = body.messages || [];
     const messages = [
       { role: 'system', content: fullSystemPrompt },
+      ...history.map((m: any) => ({ role: m.type === 'user' ? 'user' : 'assistant', content: m.message })),
       { role: 'user', content: userMessage }
     ];
 

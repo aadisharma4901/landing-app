@@ -36,6 +36,8 @@ function CartIcon() {
 export default function Navbar(): React.JSX.Element {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const theme = 'light';
+  const toggleTheme = () => {};
 
   useEffect(() => {
     const handleScroll = () => {
@@ -70,7 +72,7 @@ export default function Navbar(): React.JSX.Element {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <a
+          <Link
             href="/"
             className="btn-interactive flex items-center space-x-2"
           >
@@ -78,7 +80,7 @@ export default function Navbar(): React.JSX.Element {
               <span className="text-white font-bold text-lg">B</span>
             </div>
             <span className="text-xl font-bold text-zinc-900">Banazon</span>
-          </a>
+          </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-6">
@@ -106,6 +108,23 @@ export default function Navbar(): React.JSX.Element {
 
             {/* Cart Icon */}
             <CartIcon />
+
+            {/* Theme Toggle */}
+            <button
+              onClick={toggleTheme}
+              className="btn-interactive p-2 rounded-full bg-zinc-100 hover:bg-zinc-200 transition-colors"
+              aria-label="Toggle theme"
+            >
+              {theme === 'light' ? (
+                <svg className="w-5 h-5 text-zinc-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 24.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5 text-zinc-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 15.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              )}
+            </button>
 
             <Link
               href="/pricing"
@@ -156,17 +175,19 @@ export default function Navbar(): React.JSX.Element {
         }`}
       >
         <div className="glass border-t border-zinc-200/50">
-          <div className="px-4 py-6 space-y-4">
-            {navItems.map((item) => (
-              <a
-                key={item.name}
-                href={item.href}
-                className="block text-zinc-600 hover:text-zinc-900 transition-colors font-medium py-2"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                {item.name}
-              </a>
-            ))}
+         <div className="px-4 py-6 space-y-4">
+           {navItems.map((item) => (
+             <button
+               key={item.name}
+               onClick={() => {
+                 scrollToSection(item.href);
+                 setIsMobileMenuOpen(false);
+               }}
+               className="btn-interactive block w-full text-left text-zinc-600 hover:text-zinc-900 transition-colors font-medium py-2"
+             >
+               {item.name}
+             </button>
+           ))}
             <a
               href="/pricing"
               className="block w-full text-center bg-zinc-900 text-white px-6 py-3 rounded-full font-medium"

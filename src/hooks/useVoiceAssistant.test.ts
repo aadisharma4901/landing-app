@@ -32,9 +32,4 @@ describe('useVoiceAssistant', () => {
     expect(result.current.wakeWord).toBe('hey bro')
   })
 
-  test('wake word should be correctly defined', () => {
-    const { result } = renderHook(() => useVoiceAssistant())
-    expect(result.current.wakeWord).toBe('hey bro')
   })
-
-})
