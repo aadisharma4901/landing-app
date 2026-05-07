@@ -6,9 +6,11 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { CartProvider } from '@/context/CartContext';
 import FloatingChatBubble from '@/components/FloatingChatBubble';
-import { ThemeProvider } from '@/context/ThemeContext';
 import ScrollProgress from '@/components/ScrollProgress';
 import ScrollToTop from '@/components/ScrollToTop';
+import UserSyncProvider from '@/components/UserSyncProvider';
+import GlobalErrorHandler from '@/components/GlobalErrorHandler';
+import { ClerkProvider } from "@clerk/nextjs";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -56,10 +58,17 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`} suppressHydrationWarning>
-      <body className="min-h-full flex flex-col bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100 transition-colors duration-300">
-        <ThemeProvider>
+    <ClerkProvider
+      publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      signInFallbackRedirectUrl="/"
+      signUpFallbackRedirectUrl="/"
+      afterSignOutUrl="/sign-in"
+    >
+      <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`} suppressHydrationWarning>
+        <body className="min-h-full flex flex-col bg-white text-zinc-900 transition-colors duration-300">
           <CartProvider>
+            <GlobalErrorHandler />
+            <UserSyncProvider />
             <ScrollProgress />
             <Navbar />
             <main className="flex-1">
@@ -69,8 +78,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <FloatingChatBubble />
             <ScrollToTop />
           </CartProvider>
-        </ThemeProvider>
-      </body>
-    </html>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

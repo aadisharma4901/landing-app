@@ -1,14 +1,33 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
-import { products } from '@/data/products';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
+import { normalizeProducts, type ProductRow } from '@/lib/products';
+import type { Product } from '@/types/product';
 import ScrollReveal from './ScrollReveal';
 import MagneticButton from './MagneticButton';
 
 export default function FeaturedProducts() {
-  const featuredProducts = products.slice(0, 4);
+  const [products, setProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .limit(4);
+
+      if (error) {
+        console.error('Error fetching featured products:', error);
+        return;
+      }
+
+      setProducts(normalizeProducts(data as ProductRow[]));
+    };
+
+    fetchProducts();
+  }, []);
 
   return (
     <section id="products" className="py-24 bg-white">
@@ -25,7 +44,7 @@ export default function FeaturedProducts() {
         </ScrollReveal>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {featuredProducts.map((product, index) => (
+          {products.map((product, index) => (
             <ScrollReveal key={product.id} delay={index * 100}>
               <Link href={`/products/${product.id}`} className="group block">
                 <div className="card-hover bg-white rounded-2xl border border-zinc-100 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300">

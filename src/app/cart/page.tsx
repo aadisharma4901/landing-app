@@ -1,11 +1,52 @@
 'use client';
 
+import { useState } from 'react';
 import ScrollReveal from '@/components/ScrollReveal';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
 
 export default function CartPage() {
-  const { items, removeFromCart, updateQuantity, totalPrice, totalItems, clearCart } = useCart();
+  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
+  const { items, isLoading, removeFromCart, updateQuantity, totalPrice, totalItems, clearCart } = useCart();
+
+  const handleCheckout = async () => {
+    setIsCheckoutLoading(true);
+    try {
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error('Checkout failed:', data.error);
+        alert(data.error || 'Failed to create checkout session');
+        return;
+      }
+
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      alert('Failed to create checkout session');
+    } finally {
+      setIsCheckoutLoading(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <main className="pt-24 pb-20">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <ScrollReveal className="mb-12">
+            <h1 className="text-3xl font-bold text-zinc-900 mb-2">Shopping Cart</h1>
+            <p className="text-zinc-600">Loading your cart...</p>
+          </ScrollReveal>
+        </div>
+      </main>
+    );
+  }
 
   if (items.length === 0) {
     return (
@@ -15,7 +56,7 @@ export default function CartPage() {
             <div className="py-20">
               <div className="text-8xl mb-6">🛒</div>
               <h1 className="text-3xl font-bold text-zinc-900 mb-4">Your cart is empty</h1>
-              <p className="text-lg text-zinc-600 mb-8">Looks like you haven&apos;t added any items yet.</p>
+               <p className="text-lg text-zinc-600 mb-8">Looks like you haven&apos;t added any items yet.</p>
               <Link
                 href="/products"
                 className="btn-interactive inline-block px-8 py-4 bg-zinc-900 text-white rounded-xl font-semibold text-lg"
@@ -39,26 +80,26 @@ export default function CartPage() {
 
         <div className="space-y-4 mb-8">
           {items.map(item => (
-            <ScrollReveal key={item.product.id}>
+            <ScrollReveal key={item.id}>
               <div className="bg-white rounded-2xl border border-zinc-100 p-6 flex gap-6 items-center">
                 <div className="w-24 h-24 bg-zinc-100 rounded-xl flex items-center justify-center flex-shrink-0">
                   <div className="text-4xl opacity-30">📦</div>
                 </div>
-                
+
                 <div className="flex-1">
                   <h3 className="font-bold text-zinc-900 mb-1">{item.product.name}</h3>
                   <p className="text-zinc-500 text-sm mb-2">${item.product.price} each</p>
-                  
+
                   <div className="flex items-center gap-3">
                     <div className="flex items-center border border-zinc-200 rounded-lg overflow-hidden">
-                      <button 
+                      <button
                         onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
                         className="px-3 py-1 hover:bg-zinc-50 transition-colors"
                       >
                         -
                       </button>
                       <span className="px-4 py-1 font-semibold">{item.quantity}</span>
-                      <button 
+                      <button
                         onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
                         className="px-3 py-1 hover:bg-zinc-50 transition-colors"
                       >
@@ -69,8 +110,8 @@ export default function CartPage() {
                   </div>
                 </div>
 
-                <button 
-                  onClick={() => removeFromCart(item.product.id)}
+                <button
+                  onClick={() => removeFromCart(item.id)}
                   className="text-zinc-400 hover:text-red-500 transition-colors p-2"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -98,13 +139,17 @@ export default function CartPage() {
                 <span className="font-bold text-lg">${totalPrice}</span>
               </div>
             </div>
-            
+
             <div className="flex gap-4">
-              <button className="btn-interactive flex-1 bg-zinc-900 text-white py-4 rounded-xl font-semibold text-lg">
-                Checkout
+              <button
+                onClick={handleCheckout}
+                disabled={isCheckoutLoading || items.length === 0}
+                className="btn-interactive flex-1 bg-zinc-900 text-white py-4 rounded-xl font-semibold text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isCheckoutLoading ? 'Processing...' : 'Proceed to Checkout'}
               </button>
-              <button 
-                onClick={clearCart}
+              <button
+                onClick={() => void clearCart()}
                 className="px-6 py-4 border border-zinc-200 rounded-xl font-medium hover:bg-zinc-100 transition-colors"
               >
                 Clear Cart

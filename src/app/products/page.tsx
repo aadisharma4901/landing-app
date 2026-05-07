@@ -1,21 +1,45 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import Image from 'next/image';
+import { useState, useEffect, useMemo } from 'react';
 import ScrollReveal from '@/components/ScrollReveal';
-import { products, categories } from '@/data/products';
+import { supabase } from '@/lib/supabase';
+import { normalizeProducts, type ProductRow } from '@/lib/products';
+import type { Product, Category } from '@/types/product';
 import Link from 'next/link';
 
 export default function ProductsPage() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [sortBy, setSortBy] = useState('featured');
   const [isLoading, setIsLoading] = useState(true);
+  const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    // Simulate 2 second load time as requested
-    const timer = setTimeout(() => setIsLoading(false), 2000);
-    return () => clearTimeout(timer);
+    const fetchProducts = async () => {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*');
+
+      if (error) {
+        console.error('Error fetching products:', error);
+      } else {
+        setProducts(normalizeProducts(data as ProductRow[]));
+      }
+
+      setIsLoading(false);
+    };
+
+    fetchProducts();
   }, []);
+
+  const categories: Category[] = useMemo(() => [
+    { id: 'all', name: 'All Products', count: products.length },
+    { id: 'watches', name: 'Watches', count: products.filter((p) => p.category === 'watches').length },
+    { id: 'phones', name: 'Smartphones', count: products.filter((p) => p.category === 'phones').length },
+    { id: 'laptops', name: 'Laptops', count: products.filter((p) => p.category === 'laptops').length },
+    { id: 'cpu', name: 'Processors', count: products.filter((p) => p.category === 'cpu').length },
+    { id: 'gpu', name: 'Graphics Cards', count: products.filter((p) => p.category === 'gpu').length },
+    { id: 'pcs', name: 'Desktop PCs', count: products.filter((p) => p.category === 'pcs').length },
+  ], [products]);
 
   const filteredProducts = selectedCategory === 'all' 
     ? products 
@@ -74,7 +98,7 @@ export default function ProductsPage() {
                   onClick={() => {
                     setIsLoading(true);
                     setSelectedCategory(cat.id);
-                    setTimeout(() => setIsLoading(false), 1000);
+                    setTimeout(() => setIsLoading(false), 300);
                   }}
                   className={`px-4 py-2 rounded-full font-medium transition-all ${
                     selectedCategory === cat.id

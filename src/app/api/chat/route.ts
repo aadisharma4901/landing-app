@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { OPENROUTER_API_KEY } from '@/lib/config';
 import { SYSTEM_PROMPT, DEFAULT_MODEL, OPENROUTER_API_URL } from '@/lib/openrouter';
-import { products } from '@/data/products';
+import { supabase } from '@/lib/supabase';
+import { normalizeProducts, type ProductRow } from '@/lib/products';
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,8 +22,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Prepare full product context with details
-    const productContext = products.map(p => `${p.id} | ${p.name} | $${p.price} | ${p.category} | ${p.description}`).join('\n');
+    const { data: productRows, error: productError } = await supabase
+      .from('products')
+      .select('*');
+
+    if (productError) {
+      console.error('Error fetching product context:', productError);
+    }
+
+    const productContext = normalizeProducts(productRows as ProductRow[] | null)
+      .map((product) => `${product.id} | ${product.name} | $${product.price} | ${product.category} | ${product.description}`)
+      .join('\n');
 
     // Build full system prompt with product knowledge
     const fullSystemPrompt = `${SYSTEM_PROMPT}\n\nCURRENT PRODUCTS IN STORE:\n${productContext}`;

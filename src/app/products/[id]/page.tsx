@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState, use } from 'react';
-import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import ScrollReveal from '@/components/ScrollReveal';
-import { products } from '@/data/products';
+import { supabase } from '@/lib/supabase';
+import { normalizeProduct, type ProductRow } from '@/lib/products';
+import type { Product } from '@/types/product';
 import { useCart } from '@/context/CartContext';
 
 interface ProductPageProps {
@@ -25,19 +26,37 @@ function RatingStars({ rating }: { rating: number }) {
 
 export default function ProductDetailPage({ params }: ProductPageProps) {
   const [isLoading, setIsLoading] = useState(true);
+  const [isBuyNowLoading, setIsBuyNowLoading] = useState(false);
   const [selectedTab, setSelectedTab] = useState('description');
+  const [product, setProduct] = useState<Product | null>(null);
   const { id } = use(params);
-  const productId = parseInt(id);
-  const product = products.find(p => p.id === productId);
+  const productId = parseInt(id, 10);
   const { addToCart } = useCart();
   const [quantity, setQuantity] = useState(1);
+
+  useEffect(() => {
+    const fetchProduct = async () => {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', productId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching product:', error);
+      } else if (data) {
+        setProduct(normalizeProduct(data as ProductRow));
+      }
+      setIsLoading(false);
+    };
+
+    fetchProduct();
+  }, [productId]);
 
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 2000);
     return () => clearTimeout(timer);
   }, [productId]);
-
-  if (!product) notFound();
 
   if (isLoading) {
     return (
@@ -59,6 +78,40 @@ export default function ProductDetailPage({ params }: ProductPageProps) {
       </main>
     );
   }
+
+  if (!product) notFound();
+
+  const handleBuyNow = async () => {
+    setIsBuyNowLoading(true);
+    try {
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          productId: product.id,
+          quantity,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.error || 'Failed to create checkout session');
+        return;
+      }
+
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      console.error('Buy now checkout error:', error);
+      alert('Failed to create checkout session');
+    } finally {
+      setIsBuyNowLoading(false);
+    }
+  };
 
   return (
     <main className="pt-24 pb-20">
@@ -134,12 +187,16 @@ export default function ProductDetailPage({ params }: ProductPageProps) {
 
               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row gap-4 mb-10">
-                <button className="btn-interactive flex-1 bg-zinc-900 text-white py-4 rounded-xl font-semibold text-lg">
-                  Buy Now
+                <button
+                  onClick={() => void handleBuyNow()}
+                  disabled={isBuyNowLoading}
+                  className="btn-interactive flex-1 bg-zinc-900 text-white py-4 rounded-xl font-semibold text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isBuyNowLoading ? 'Processing...' : 'Buy Now'}
                 </button>
                 <button 
                   onClick={() => {
-                    for(let i = 0; i < quantity; i++) addToCart(product!);
+                    void addToCart(product, quantity);
                   }}
                   className="btn-interactive flex-1 bg-white text-zinc-900 border border-zinc-200 py-4 rounded-xl font-semibold text-lg"
                 >

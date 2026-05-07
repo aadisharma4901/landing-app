@@ -3,14 +3,30 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import ScrollReveal from '@/components/ScrollReveal';
-import { products } from '@/data/products';
+import { supabase } from '@/lib/supabase';
+import { normalizeProducts, type ProductRow } from '@/lib/products';
+import type { Product } from '@/types/product';
 
 export default function DealsPage() {
+  const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 800);
-    return () => clearTimeout(timer);
+    const fetchProducts = async () => {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*');
+
+      if (error) {
+        console.error('Error fetching products:', error);
+      } else {
+        setProducts(normalizeProducts(data as ProductRow[]));
+      }
+
+      setIsLoading(false);
+    };
+
+    fetchProducts();
   }, []);
 
   // Get products with badges (bestseller, sale, new) and sort by discount
@@ -22,7 +38,7 @@ export default function DealsPage() {
       return discountB - discountA;
     });
 
-  const ProductCard = ({ product, index = 0 }: { product: typeof products[0]; index?: number }) => (
+  const ProductCard = ({ product, index = 0 }: { product: Product; index?: number }) => (
     <ScrollReveal delay={index * 100}>
       <Link href={`/products/${product.id}`} className="group block">
         <div className="card-hover bg-white rounded-2xl border border-zinc-100 overflow-hidden h-full">
