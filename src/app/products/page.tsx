@@ -6,9 +6,12 @@ import { supabase } from '@/lib/supabase';
 import { normalizeProducts, type ProductRow } from '@/lib/products';
 import type { Product, Category } from '@/types/product';
 import Link from 'next/link';
+import { useCart } from '@/context/CartContext';
 
 export default function ProductsPage() {
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const { addToCart, items } = useCart();
+  const [addedProducts, setAddedProducts] = useState<Set<number>>(new Set());
   const [sortBy, setSortBy] = useState('featured');
   const [isLoading, setIsLoading] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
@@ -130,10 +133,12 @@ export default function ProductsPage() {
           {isLoading ? (
             Array(8).fill(0).map((_, i) => <ProductSkeleton key={i} />)
           ) : (
-            sortedProducts.map(product => (
+            sortedProducts.map(product => {
+              const isInStock = product.stock === 'in_stock' || product.stock === 'low_stock';
+              return (
               <ScrollReveal key={product.id} delay={100}>
-                <Link href={`/products/${product.id}`}>
-                  <div className="card-hover bg-white rounded-2xl border border-zinc-100 overflow-hidden h-full">
+                <div className="card-hover bg-white rounded-2xl border border-zinc-100 overflow-hidden h-full flex flex-col">
+                  <Link href={`/products/${product.id}`}>
                     {/* Product Image Placeholder */}
                     <div className="aspect-square bg-gradient-to-br from-zinc-50 to-zinc-100 flex items-center justify-center relative">
                       <div className="text-6xl opacity-20">📦</div>
@@ -159,19 +164,47 @@ export default function ProductsPage() {
                           <span className="text-sm text-zinc-400 line-through">${product.originalPrice}</span>
                         )}
                       </div>
-
-                      <div className={`text-xs font-medium px-2 py-1 inline-block rounded-full ${
-                        product.stock === 'in_stock' ? 'bg-green-100 text-green-700' :
-                        product.stock === 'low_stock' ? 'bg-yellow-100 text-yellow-700' :
-                        'bg-red-100 text-red-700'
-                      }`}>
-                        {product.stock.replace('_', ' ')}
-                      </div>
                     </div>
+                  </Link>
+
+                  <div className="px-6 pb-6 mt-auto">
+                    <div className={`text-xs font-medium px-2 py-1 inline-block rounded-full mb-3 ${
+                      product.stock === 'in_stock' ? 'bg-green-100 text-green-700' :
+                      product.stock === 'low_stock' ? 'bg-yellow-100 text-yellow-700' :
+                      'bg-red-100 text-red-700'
+                    }`}>
+                      {product.stock.replace('_', ' ')}
+                    </div>
+
+                    {addedProducts.has(product.id) || items.some(item => item.product.id === product.id) ? (
+                      <Link
+                        href="/cart"
+                        className="block w-full py-2.5 rounded-xl font-semibold text-sm text-center bg-emerald-500 text-white hover:bg-emerald-600 transition-all"
+                      >
+                        In Cart →
+                      </Link>
+                    ) : (
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setAddedProducts(prev => new Set(prev).add(product.id));
+                          void addToCart(product, 1);
+                        }}
+                        disabled={!isInStock}
+                        className={`w-full py-2.5 rounded-xl font-semibold text-sm transition-all ${
+                          isInStock
+                            ? 'bg-zinc-900 text-white hover:bg-zinc-800 active:scale-[0.98]'
+                            : 'bg-zinc-100 text-zinc-400 cursor-not-allowed'
+                        }`}
+                      >
+                        {isInStock ? 'Add to Cart' : 'Out of Stock'}
+                      </button>
+                    )}
                   </div>
-                </Link>
+                </div>
               </ScrollReveal>
-            ))
+              );
+            })
           )}
         </div>
       </div>

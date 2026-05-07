@@ -1,39 +1,11 @@
 'use client';
 
-import { useState } from 'react';
 import ScrollReveal from '@/components/ScrollReveal';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
 
 export default function CartPage() {
-  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const { items, isLoading, removeFromCart, updateQuantity, totalPrice, totalItems, clearCart } = useCart();
-
-  const handleCheckout = async () => {
-    setIsCheckoutLoading(true);
-    try {
-      const response = await fetch('/api/checkout', {
-        method: 'POST',
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        console.error('Checkout failed:', data.error);
-        alert(data.error || 'Failed to create checkout session');
-        return;
-      }
-
-      if (data.url) {
-        window.location.href = data.url;
-      }
-    } catch (error) {
-      console.error('Checkout error:', error);
-      alert('Failed to create checkout session');
-    } finally {
-      setIsCheckoutLoading(false);
-    }
-  };
 
   if (isLoading) {
     return (
@@ -141,13 +113,13 @@ export default function CartPage() {
             </div>
 
             <div className="flex gap-4">
-              <button
-                onClick={handleCheckout}
-                disabled={isCheckoutLoading || items.length === 0}
-                className="btn-interactive flex-1 bg-zinc-900 text-white py-4 rounded-xl font-semibold text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              <Link
+                href="/checkout"
+                prefetch={false}
+                className="btn-interactive flex-1 bg-zinc-900 text-white py-4 rounded-xl font-semibold text-lg text-center"
               >
-                {isCheckoutLoading ? 'Processing...' : 'Proceed to Checkout'}
-              </button>
+                Proceed to Checkout
+              </Link>
               <button
                 onClick={() => void clearCart()}
                 className="px-6 py-4 border border-zinc-200 rounded-xl font-medium hover:bg-zinc-100 transition-colors"

@@ -16,6 +16,7 @@
     "@clerk/nextjs": "^7.3.0",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
+    "@stripe/react-stripe-js": "^6.3.0",
     "@stripe/stripe-js": "^9.4.0",
     "@studio-freight/lenis": "^1.0.42",
     "@supabase/supabase-js": "^2.105.3",

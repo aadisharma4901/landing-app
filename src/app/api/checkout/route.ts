@@ -17,10 +17,26 @@ interface CheckoutLineItem {
   quantity: number;
 }
 
-function buildSessionMetadata(items: CheckoutLineItem[], userId?: string | null, mode?: string) {
+interface CustomerDetails {
+  fullName: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+}
+
+function buildSessionMetadata(
+  items: CheckoutLineItem[],
+  userId?: string | null,
+  mode?: string,
+  customer?: CustomerDetails | null
+) {
   return {
     ...(userId ? { userId } : {}),
     ...(mode ? { checkoutMode: mode } : {}),
+    ...(customer ? { customerName: customer.fullName, customerEmail: customer.email, customerPhone: customer.phone, customerAddress: `${customer.address}, ${customer.city}, ${customer.state} ${customer.zip}` } : {}),
     items: JSON.stringify(
       items.map((item) => ({
         product_id: item.product.id,
@@ -38,7 +54,8 @@ async function createCheckoutSession(
   req: NextRequest,
   items: CheckoutLineItem[],
   userId?: string | null,
-  mode?: string
+  mode?: string,
+  customer?: CustomerDetails | null
 ) {
   const lineItems = items.map((item) => ({
     price_data: {
@@ -59,7 +76,7 @@ async function createCheckoutSession(
     line_items: lineItems,
     success_url: `${req.nextUrl.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${req.nextUrl.origin}/cancel`,
-    metadata: buildSessionMetadata(items, userId, mode),
+    metadata: buildSessionMetadata(items, userId, mode, customer),
   });
 
   return session;
@@ -71,9 +88,12 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({}));
     const productId = body.productId ? Number(body.productId) : null;
     const quantity = Math.max(1, Number(body.quantity) || 1);
+    const cartItems = body.cartItems as Array<{ productId: number; quantity: number }> | undefined;
+    const customer = body.customerDetails as CustomerDetails | undefined;
 
     console.log('Checkout POST - userId:', userId, 'productId:', productId, 'quantity:', quantity);
 
+    // BUY NOW mode: single product checkout from product detail page
     if (productId !== null) {
       const { data: product, error: productError } = await supabaseServer
         .from('products')
@@ -93,7 +113,8 @@ export async function POST(req: NextRequest) {
         req,
         [{ product: product as CheckoutProduct, quantity }],
         userId,
-        'buy_now'
+        'buy_now',
+        customer || null
       );
 
       return NextResponse.json({ url: session.url });
@@ -106,61 +127,68 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Fetch cart items with product details
-    console.log('Checkout - Fetching cart for user:', userId);
-    const { data: cartItems, error: cartError } = await supabaseServer
-      .from('cart_items')
-      .select(`
-        id,
-        quantity,
-        product:products (
-          id,
-          name,
-          price,
-          original_price,
-          image_url,
-          description
-        )
-      `)
-      .eq('user_id', userId);
+    // CART CHECKOUT: use cart items sent from frontend
+    if (cartItems && cartItems.length > 0) {
+      const productIds = cartItems.map(i => i.productId);
+      const { data: products, error: productsError } = await supabaseServer
+        .from('products')
+        .select('id, name, price, original_price, image_url, description')
+        .in('id', productIds);
 
-    console.log('Checkout cart items:', cartItems);
-    console.log('Checkout cart error:', cartError);
+      if (productsError) {
+        console.error('Error fetching products for checkout:', productsError);
+        return NextResponse.json(
+          { error: 'Failed to fetch product details', details: productsError.message },
+          { status: 500 }
+        );
+      }
 
-    if (cartError) {
-      console.error('Error fetching cart for checkout:', cartError);
+      const productMap = new Map(products?.map(p => [p.id, p]) || []);
+      const checkoutItems: CheckoutLineItem[] = [];
+
+      for (const item of cartItems) {
+        const product = productMap.get(Number(item.productId));
+        if (product) {
+          checkoutItems.push({
+            product: product as CheckoutProduct,
+            quantity: item.quantity,
+          });
+        }
+      }
+
+      if (checkoutItems.length === 0) {
+        return NextResponse.json(
+          { error: 'No valid products found in cart' },
+          { status: 400 }
+        );
+      }
+
+      const session = await createCheckoutSession(req, checkoutItems, userId, 'cart', customer || null);
+
+      console.log('Checkout - Session created:', session.id, 'URL:', session.url);
+      return NextResponse.json({ url: session.url });
+    }
+
+    return NextResponse.json(
+      { error: 'Cart is empty. Please add items to your cart first.' },
+      { status: 400 }
+    );
+  } catch (error: any) {
+    console.error('Checkout error details:', {
+      message: error?.message,
+      type: error?.type,
+      code: error?.code,
+      stack: error?.stack,
+    });
+    const errorMessage = error?.message || 'Failed to create checkout session';
+    if (error?.type === 'StripeAuthenticationError') {
       return NextResponse.json(
-        { 
-          error: 'Failed to fetch cart',
-          details: cartError.message 
-        },
+        { error: 'Stripe API key is not configured properly. Please check STRIPE_SECRET_KEY.' },
         { status: 500 }
       );
     }
-
-    if (!cartItems || cartItems.length === 0) {
-      return NextResponse.json(
-        { error: 'Cart is empty' },
-        { status: 400 }
-      );
-    }
-
-    // Convert cart items to Stripe line items
-    const checkoutItems = cartItems
-      .filter((item: any) => item.product !== null)
-      .map((item: any) => ({
-        product: item.product as CheckoutProduct,
-        quantity: item.quantity,
-      }));
-
-    const session = await createCheckoutSession(req, checkoutItems, userId, 'cart');
-
-    console.log('Checkout - Session created:', session.id, 'URL:', session.url);
-    return NextResponse.json({ url: session.url });
-  } catch (error) {
-    console.error('Checkout error:', error);
     return NextResponse.json(
-      { error: 'Failed to create checkout session' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

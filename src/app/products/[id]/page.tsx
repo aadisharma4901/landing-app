@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, use } from 'react';
-import { notFound } from 'next/navigation';
+import { notFound, useRouter } from 'next/navigation';
 import ScrollReveal from '@/components/ScrollReveal';
 import { supabase } from '@/lib/supabase';
 import { normalizeProduct, type ProductRow } from '@/lib/products';
@@ -32,6 +32,7 @@ export default function ProductDetailPage({ params }: ProductPageProps) {
   const { id } = use(params);
   const productId = parseInt(id, 10);
   const { addToCart } = useCart();
+  const router = useRouter();
   const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
@@ -84,30 +85,11 @@ export default function ProductDetailPage({ params }: ProductPageProps) {
   const handleBuyNow = async () => {
     setIsBuyNowLoading(true);
     try {
-      const response = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          productId: product.id,
-          quantity,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        alert(data.error || 'Failed to create checkout session');
-        return;
-      }
-
-      if (data.url) {
-        window.location.href = data.url;
-      }
+      await addToCart(product, quantity);
+      router.push('/checkout');
     } catch (error) {
-      console.error('Buy now checkout error:', error);
-      alert('Failed to create checkout session');
+      console.error('Buy now error:', error);
+      alert('Failed to process. Please try again.');
     } finally {
       setIsBuyNowLoading(false);
     }

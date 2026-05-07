@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import ScrollReveal from '@/components/ScrollReveal';
@@ -10,6 +10,7 @@ function SuccessContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session_id');
   const { clearCart } = useCart();
+  const [customerName, setCustomerName] = useState('Valued Customer');
 
   // Process successful checkout on page load - ONLY RUN ONCE
   useEffect(() => {
@@ -22,6 +23,9 @@ function SuccessContent() {
       .then(res => res.json())
       .then(data => {
         console.log('✅ Order processing completed:', data);
+        if (data.customerName) {
+          setCustomerName(data.customerName);
+        }
         // Clear frontend cart state after successful order processing
         clearCart();
       })
@@ -35,11 +39,12 @@ function SuccessContent() {
     
     const invoiceContent = `
             INVOICE
+Customer: ${customerName}
 Order ID: ${sessionId}
 Date: ${new Date().toLocaleDateString()}
 Time: ${new Date().toLocaleTimeString()}
 
-Thank you for your purchase!
+Thank you for your purchase, ${customerName}!
 
 Payment Status: PAID
 Transaction ID: ${sessionId}

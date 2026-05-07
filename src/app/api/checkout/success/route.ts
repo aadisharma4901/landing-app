@@ -170,10 +170,13 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    const customerName = session.metadata?.customerName || 'Valued Customer';
+
     return NextResponse.json({
       success: true,
       orderId: order.id,
-      totalPrice
+      totalPrice,
+      customerName
     });
 
   } catch (error) {

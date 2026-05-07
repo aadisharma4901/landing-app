@@ -6,8 +6,11 @@ import ScrollReveal from '@/components/ScrollReveal';
 import { supabase } from '@/lib/supabase';
 import { normalizeProducts, type ProductRow } from '@/lib/products';
 import type { Product } from '@/types/product';
+import { useCart } from '@/context/CartContext';
 
 export default function DealsPage() {
+  const { addToCart, items } = useCart();
+  const [addedProducts, setAddedProducts] = useState<Set<number>>(new Set());
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -38,10 +41,12 @@ export default function DealsPage() {
       return discountB - discountA;
     });
 
-  const ProductCard = ({ product, index = 0 }: { product: Product; index?: number }) => (
+  const ProductCard = ({ product, index = 0 }: { product: Product; index?: number }) => {
+    const isInStock = product.stock === 'in_stock' || product.stock === 'low_stock';
+    return (
     <ScrollReveal delay={index * 100}>
-      <Link href={`/products/${product.id}`} className="group block">
-        <div className="card-hover bg-white rounded-2xl border border-zinc-100 overflow-hidden h-full">
+      <div className="card-hover bg-white rounded-2xl border border-zinc-100 overflow-hidden h-full flex flex-col">
+        <Link href={`/products/${product.id}`} className="group block">
           <div className="aspect-square bg-gradient-to-br from-zinc-50 to-zinc-100 flex items-center justify-center relative">
             <div className="text-8xl opacity-10">📦</div>
             {product.badge && (
@@ -72,14 +77,51 @@ export default function DealsPage() {
                 <span className="text-sm text-zinc-400 line-through">${product.originalPrice}</span>
               )}
             </div>
-            {product.stock === 'low_stock' && (
-              <div className="text-xs text-amber-600 font-medium">Only a few left!</div>
-            )}
           </div>
+        </Link>
+
+        <div className="px-6 pb-6 mt-auto">
+          <div className={`text-xs font-medium px-2 py-1 inline-block rounded-full mb-3 ${
+            product.stock === 'in_stock' ? 'bg-green-100 text-green-700' :
+            product.stock === 'low_stock' ? 'bg-yellow-100 text-yellow-700' :
+            'bg-red-100 text-red-700'
+          }`}>
+            {product.stock.replace('_', ' ')}
+          </div>
+
+          {product.stock === 'low_stock' && (
+            <div className="text-xs text-amber-600 font-medium mb-2">Only a few left!</div>
+          )}
+
+          {addedProducts.has(product.id) || items.some(item => item.product.id === product.id) ? (
+            <Link
+              href="/cart"
+              className="block w-full py-2.5 rounded-xl font-semibold text-sm text-center bg-emerald-500 text-white hover:bg-emerald-600 transition-all"
+            >
+              In Cart →
+            </Link>
+          ) : (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                setAddedProducts(prev => new Set(prev).add(product.id));
+                void addToCart(product, 1);
+              }}
+              disabled={!isInStock}
+              className={`w-full py-2.5 rounded-xl font-semibold text-sm transition-all ${
+                isInStock
+                  ? 'bg-zinc-900 text-white hover:bg-zinc-800 active:scale-[0.98]'
+                  : 'bg-zinc-100 text-zinc-400 cursor-not-allowed'
+              }`}
+            >
+              {isInStock ? 'Add to Cart' : 'Out of Stock'}
+            </button>
+          )}
         </div>
-      </Link>
+      </div>
     </ScrollReveal>
-  );
+    );
+  };
 
   return (
     <main className="pt-24 pb-20 bg-gradient-to-b from-zinc-50 to-white">
