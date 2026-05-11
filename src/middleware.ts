@@ -67,11 +67,21 @@ export default clerkMiddleware(async (auth, request) => {
   }
 });
 
+/**
+ * Middleware matcher configuration.
+ *
+ * The original regular expression was overly complex and caused the
+ * middleware to be invoked for static assets, which can trigger the
+ * `MIDDLEWARE_INVOCATION_FAILED` error during builds. The updated
+ * configuration excludes the Next.js internal `_next` directory and
+ * common static file extensions, while still applying the middleware to
+ * all page routes and API routes.
+ */
 export const config = {
   matcher: [
-    // Skip Next.js internals and all static files, unless found in search params
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|json|xml|txt)).*)',
-    // Always run for API routes
-    '/(api|trpc)(.*)',
+    // Apply to all page routes except static assets and the Next.js internals.
+    '/((?!_next|.*\\.(?:png|jpe?g|svg|ico|webp|gif|css|js|json|txt|xml)).*)',
+    // Apply to all API routes.
+    '/api/:path*',
   ],
 };
