@@ -7,7 +7,6 @@ interface OrderItem {
     id: number;
     name: string;
     price: number;
-    imageUrl?: string;
     image_url?: string;
   };
   quantity: number;
@@ -17,8 +16,6 @@ interface RecentlyPurchasedItem {
   id: number;
   name: string;
   price: number;
-  imageUrl?: string;
-  image_url?: string;
   quantity: number;
   orderDate: string;
   orderId: string;
@@ -110,7 +107,6 @@ export async function GET() {
             id: item.products.id,
             name: item.products.name,
             price: item.price,
-            imageUrl: item.products.image_url,
             quantity: item.quantity,
             orderDate: order.created_at,
             orderId: order.id,

@@ -37,9 +37,18 @@ function CartIcon() {
 
 export default function Navbar() {
   const { user, isLoaded } = useUser();
+  const isAdmin = user?.publicMetadata?.role === 'admin';
   const pathname = usePathname();
+  const isAdminPath = pathname.startsWith('/admin');
   const isDashboard = pathname.startsWith('/dashboard');
   const [isScrolled, setIsScrolled] = useState(false);
+
+  // Prevent rendering on the server to avoid a flash of the client navbar on
+  // admin routes. The component will render only on the client, where the
+  // pathname check can correctly hide it for `/admin/*` URLs.
+  if (typeof window === 'undefined') {
+    return null;
+  }
 
   useEffect(() => {
     const handleScroll = () => {
@@ -52,19 +61,21 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Don't render on dashboard pages
-  if (isDashboard) {
+  // Hide the navbar on both the client dashboard and any admin route
+  if (isDashboard || isAdminPath) {
     return null;
   }
 
   return (
     <>
-      <nav
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          isScrolled
-            ? "glass shadow-sm border-b border-white/20"
-            : "bg-transparent"
-        }`}
+       <nav
+         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+           isScrolled
+             ? "glass shadow-sm border-b border-white/20"
+             : isAdmin
+               ? "bg-indigo-50"
+               : "bg-transparent"
+         }`}
         style={{ transform: 'translateY(0)' }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -114,6 +125,30 @@ export default function Navbar() {
                     <Link href="/dashboard" className="text-sm font-medium text-zinc-700 hover:text-zinc-900">
                       Dashboard
                     </Link>
+                 {/* Show Admin link only for users with an admin role. */}
+                 {/* Admin UI – distinct styling */}
+                     {isAdmin && !isAdminPath && (
+                   <div className="flex items-center space-x-2 ml-4">
+                     {/* Admin link with a different color scheme */}
+                     <Link
+                       href="/admin"
+                       className="px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors"
+                     >
+                       Admin Panel
+                     </Link>
+                     {/* Optional quick‑check button */}
+                     <button
+                       type="button"
+                       className="px-2 py-0.5 bg-indigo-200 text-indigo-800 rounded hover:bg-indigo-300"
+                       onClick={() => {
+                         // Simple client‑side check – could be expanded later
+                         alert('You are viewing the admin panel');
+                       }}
+                     >
+                       Check
+                     </button>
+                   </div>
+                 )}
                     <UserButton />
                   </>
                 ) : (

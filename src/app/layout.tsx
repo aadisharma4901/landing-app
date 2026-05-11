@@ -57,9 +57,36 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // If Clerk environment variables are missing (e.g., during local development
+  // without a Clerk account), render the app without the ClerkProvider to avoid
+  // network errors caused by the client trying to touch a non‑existent session.
+  const clerkKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+  if (!clerkKey) {
+    // Render a minimal layout that avoids any Clerk‑dependent components.
+    // This prevents the session‑touch network request that fails when the
+    // publishable key is absent (common in local development or CI).
+    return (
+      <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`} suppressHydrationWarning>
+        <body className="min-h-full flex flex-col bg-white text-zinc-900 transition-colors duration-300">
+          <CartProvider>
+            <GlobalErrorHandler />
+            <ScrollProgress />
+            {/* Navbar and UserSyncProvider are omitted when Clerk is not configured */}
+            <main className="flex-1">
+              {children}
+            </main>
+            <Footer />
+            <FloatingChatBubble />
+            <ScrollToTop />
+          </CartProvider>
+        </body>
+      </html>
+    );
+  }
+
   return (
     <ClerkProvider
-      publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      publishableKey={clerkKey}
       signInFallbackRedirectUrl="/"
       signUpFallbackRedirectUrl="/"
       afterSignOutUrl="/sign-in"

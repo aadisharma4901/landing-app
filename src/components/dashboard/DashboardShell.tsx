@@ -15,7 +15,7 @@ interface DashboardShellProps {
   activeSection?: string;
 }
 
-export default function DashboardShell({ children, user, activeSection = 'overview' }: DashboardShellProps) {
+export default function DashboardShell({ children, user, activeSection = 'overview', hideSidebar = false }: DashboardShellProps & { hideSidebar?: boolean }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleMenuToggle = () => {
@@ -24,10 +24,12 @@ export default function DashboardShell({ children, user, activeSection = 'overvi
 
   return (
     <div className="flex min-h-screen bg-zinc-50">
-      {/* Sidebar */}
-      <div className="hidden lg:block">
-        <DashboardSidebar />
-      </div>
+       {/* Sidebar */}
+       {!hideSidebar && (
+         <div className="hidden lg:block">
+           <DashboardSidebar />
+         </div>
+       )}
 
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (

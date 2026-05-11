@@ -1,15 +1,16 @@
-import { redirect } from 'next/navigation';
-import { auth } from '@clerk/nextjs/server';
+"use client";
 
-export default async function Page() {
-  const { userId } = await auth();
+/**
+ * Sign‑in page for Clerk.
+ * This regular page (non‑catch‑all) ensures the route `/sign-in` exists and
+ * renders the Clerk `<SignIn>` component with path routing.
+ */
+import { SignIn } from "@clerk/nextjs";
 
-  if (userId) {
-    redirect('/');
-  }
-
-  const signInUrl = process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL 
-    || 'https://one-yak-34.accounts.dev/sign-in?redirect_url=http%3A%2F%2Flocalhost%3A3000%2F';
-
-  redirect(signInUrl);
+export default function SignInPage() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-zinc-50">
+      <SignIn path="/sign-in" routing="path" forceRedirectUrl="/" />
+    </div>
+  );
 }
