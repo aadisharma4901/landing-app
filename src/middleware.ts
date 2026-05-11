@@ -33,27 +33,42 @@ const isPublicRoute = createRouteMatcher([
  *   occurs when a middleware handler does not return a response.
  */
 export default clerkMiddleware(async (auth, request) => {
+  // ---------------------------------------------------------------------
+  // Detailed request logging – helps identify why the middleware may fail.
+  // ---------------------------------------------------------------------
+  console.log('🪲 Middleware invoked', {
+    method: request.method,
+    url: request.url,
+    pathname: request.nextUrl.pathname,
+    isPublic: isPublicRoute(request),
+  });
+
   try {
     // Allow unauthenticated access to explicitly public routes.
     if (isPublicRoute(request)) {
+      console.log('🪲 Public route – bypass auth');
       return NextResponse.next();
     }
 
     // Protect all non‑public routes.
     await auth.protect();
+    console.log('🪲 Authenticated successfully');
 
     // Admin‑only protection: ensure the signed‑in user has role "admin"
     if (request.nextUrl.pathname.startsWith('/admin')) {
       const { userId } = await auth();
       if (!userId) {
+        console.warn('🪲 Admin route without userId');
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
       const client = await clerkClient();
       const user = await client.users.getUser(userId);
       // @ts-ignore – publicMetadata is a free‑form object
       if (user?.publicMetadata?.role !== 'admin') {
+        console.warn('🪲 User lacks admin role', { userId });
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
+      console.log('🪲 Admin role verified');
     }
 
     // Authorized request – continue to the next handler.
