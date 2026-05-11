@@ -21,9 +21,25 @@ const isPublicRoute = createRouteMatcher([
   '/sign-up(.*)',
 ]);
 
+/**
+ * Updated Clerk middleware for production stability.
+ *
+ * - Public routes are returned early without any authentication checks.
+ * - Protected routes run `auth.protect()` and, if the route is an admin
+ *   path, verify the signed‑in user has the `admin` role.
+ * - The middleware always returns a `NextResponse` (either the JSON error
+ *   responses for auth failures or `NextResponse.next()` for successful
+ *   requests). This prevents the `MIDDLEWARE_INVOCATION_FAILED` error that
+ *   occurs when a middleware handler does not return a response.
+ */
 export default clerkMiddleware(async (auth, request) => {
-  // Allow unauthenticated access only to explicitly public routes.
-  if (!isPublicRoute(request)) {
+  try {
+    // Allow unauthenticated access to explicitly public routes.
+    if (isPublicRoute(request)) {
+      return NextResponse.next();
+    }
+
+    // Protect all non‑public routes.
     await auth.protect();
 
     // Admin‑only protection: ensure the signed‑in user has role "admin"
@@ -39,6 +55,15 @@ export default clerkMiddleware(async (auth, request) => {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
     }
+
+    // Authorized request – continue to the next handler.
+    return NextResponse.next();
+  } catch (error) {
+    // Log the error server‑side (console) and return a generic 500 response.
+    // This prevents the middleware from bubbling up an unhandled exception
+    // which would result in MIDDLEWARE_INVOCATION_FAILED.
+    console.error('Middleware error:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 });
 

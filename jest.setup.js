@@ -26,12 +26,32 @@ jest.mock('next/link', () => ({
 
 // Provide a minimal ResizeObserver implementation for components that rely on it.
 // This prevents errors in the test environment where ResizeObserver is not available.
-global.ResizeObserver = class {
-  constructor(callback) { this.callback = callback; }
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-};
+  global.ResizeObserver = class {
+    constructor(callback) { this.callback = callback; }
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+
+  // Mock IntersectionObserver for components that rely on it (e.g., ScrollReveal).
+  // The mock immediately invokes the callback with an entry indicating the element is intersecting.
+  global.IntersectionObserver = class {
+    constructor(callback) {
+      this.callback = callback;
+    }
+    observe() {
+      // Simulate an intersecting entry as soon as observe is called.
+      this.callback([
+        {
+          isIntersecting: true,
+          target: {},
+          intersectionRatio: 1,
+        },
+      ]);
+    }
+    unobserve() {}
+    disconnect() {}
+  };
 
 // You can add any global test configuration here, such as mocking timers or
 // setting up a test server. For now, the default setup is sufficient.
